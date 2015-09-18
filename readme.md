@@ -2,7 +2,7 @@
 
 > tetris clone in c
 
-It mostly works.
+![screenshot](https://github.com/ArtskydJ/tetris/blob/master/screenshot.PNG)
 
 ## How to compile
 
@@ -15,8 +15,9 @@ gcc -std=c99 -o Tetris.exe Tetris.c -lmingw32 -lSDLmain -lSDL -lSDL_ttf -mwindow
 
 ## Known issues
 
-- The game never speeds up.
+- Never speeds up
 - Does not save high scores
+- Does not pause when you switch to a different window (but you can pause manually)
 
 ## License
 
