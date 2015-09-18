@@ -1,33 +1,32 @@
 //Tetris
 //Joseph Dykstra
 //Port started 07-15-2013
-//Finished ??-??-2013
+//Finished xx-xx-201x
 #include "SDL/SDL.h"
+#include "SDL/SDL_ttf.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
-#include <string.h>
+//#include <string.h>
+#include "including/EasySDL.h"
+
 
 #define DEBUG
 #define MODE	0
-//#define ONE_FLOOR_KICK
-#define SHOW_NEXT_PIECES
-#define SHOW_GHOST_PIECE
-#define SHOW_CURR_PIECE
 
 
 #include "DefinitionsAndData.c"
-#include "SmallFunctions.c"
 #include "InitAndQuit.c"
 #include "TetrominoManip.c"
-#include "InputOutputAndDraw.c"
+#include "InputAndOutput.c"
+#include "Draw.c"
 #ifdef DEBUG
 	#include "Debug.c"
 	#ifdef MODE
 		#undef MODE
 	#endif
 	#define MODE	0
-//	#define DEBUG_STREAM		//turns on most debug stream messages
+	#define DEBUG_STREAM		//turns on most debug stream messages
 //	#define DEBUG_BOARD			//turns on board drawing in debug stream
 //	#define DEBUG_INFO			//turns on debug stream info about game's state
 //	#define DRAW_TET_DETAILS	//turns on details of tetromino drawing positions
@@ -50,7 +49,7 @@ int main( int argc, char *argv[] )
 	{
 	initReset();
 	srand(time(0));
-	if (MODE==0||MODE==1)
+	if (MODE==0 || MODE==1)
 		{
 		while (playagain)
 			{
@@ -60,21 +59,24 @@ int main( int argc, char *argv[] )
 			alive=true;
 			while (alive)
 				{
-				pieceCreate();
+				pieceCreate(COMING);
 				alive = move(dwn,tetUD);	//If a piece was made where it...
 				piecemoving = alive;			//can't move down, end the game.
 				for (int i=1; piecemoving; i++) //while the piece is moving
 					{
 					i%=waitGravity;
-					drawBoard(true); //replace [false] with [i==0]
+					drawBoard();
 #ifdef DEBUG_INFO
 					debugInfo(i);
 #endif
-					SDL_Delay(delaytime/waitGravity); // was 10
-					piecemoving=inputOutput(true,true,i);
+					SDL_Delay(delaytime); // change to 10
+					piecemoving=inputOutput(i);
 					}
-				//delaytime*=speedup; //needs float typecast?
-				pieceSetInto(currentPiece);
+				//delaytime=((float)delaytime*speedup); //needs float typecast?
+				if (alive)
+					pieceSetInto(currentPiece);
+				drawBoard();
+				blinkyFullRows();
 				clearFullRows();
 				}
 			playagain=gameEnd();
@@ -86,7 +88,7 @@ int main( int argc, char *argv[] )
 		debug(MODE);
 		}
 #endif
-	SDL_Quit();
+	quit();
 	return 0;
 	}
 
@@ -95,37 +97,48 @@ int main( int argc, char *argv[] )
 	
 	
 /*
+
+TTF...
+DefinitionsAndData  -  line 240
+InitAndQuit  -  line 22
+
+
 BUGS
 
 FIX!
+the icon is invisible
+level counter doesn't count up
+piece never speeds up
 
 FIXED?
-pieces rotate into others (off by 2 because of hidden 2 rows?)
-hard drop acts like firm drop
 	
 	
 TODO
-+ use the Random Generator
-+ make a hold piece
 + add bonus points for combos
-+ add piece, line, score, and level counters.
-+ rotate the nextPiece so that WYSIWYG
-+ create pause functionality
++ add background music
++ change BLINK_TIME into a variable? (or divide by delaytime?)
 + clean up the code...
-	- put all [printf] functions between [#ifdef DEBUG] statements
 	- take out unused functions
 	- name all functions with camelCase
 	- name all variables with camelCase
 	- name all #defines in ALL_CAPS
 	- change all [UD] and [LR] to [y] and [x]
-	- replace clearfullrows() [if (INallowLog)] with [#ifdef DEBUG] statements
 	- make some variables local?
 	- deside which checks for the end of game:
-		[piecemoving=move(dwn,tetUD);]	// Tetris3.c			r:55	c:17
+		[piecemoving=move(dwn,tetUD);]	// Tetris3.c			r:55	c:17 //Official correct way, I think
 		[if (blocksInRow>0 && i<2)]		// TetrominoManip.c		r:171	c:9
 
 DONE
++ use 'The Random Generator'
++ line clears should blink
++ show "paused" if paused.
 + clean up the debug stream; too much un-needed junk in it
++ make a hold piece
++ rotate the nextPiece so that WYSIWYG
++ create pause functionality
++ clean up the code...
+	- put all [printf] functions between [#ifdef DEBUG] statements
+	- replace clearfullrows() [if (INallowLog)] with [#ifdef DEBUG] statements
 
 
 

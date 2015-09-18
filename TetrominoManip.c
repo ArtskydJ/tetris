@@ -1,6 +1,6 @@
 char move(int INdir, int INud)
 	{
-	int canMove=0;
+	int cantMove=0;
 	int addLR  =0;
 	int addUD  =0;
 	int tempLR =0;
@@ -10,18 +10,18 @@ char move(int INdir, int INud)
 	else if (INdir==rht) addLR = 1;
 	for (int i=0; i<4; i++)
 		{
-		tempLR = tet[currentPiece+currentRotate][i  ]+tetLR+addLR;
-		tempUD = tet[currentPiece+currentRotate][i+4]+INud +addUD+2; //2 hidden rows
+		tempLR = tet[currentPiece][X][currentRotate][i]+tetLR+addLR;
+		tempUD = tet[currentPiece][Y][currentRotate][i]+INud +addUD+2; //2 hidden rows
 		if (tempLR>=0 && tempLR<AREA_WIDTH && tempUD>=0 && tempUD<AREA_HEIGHT+2)
-			canMove+=(area[tempLR][tempUD])>0;
+			cantMove+=(area[tempLR][tempUD])>EMPTY_AREA;
 		else
-			canMove++;
+			cantMove++;
 		}
 #ifdef DEBUG_STREAM
-	printf(" - can_move: %s",(canMove==0)?"yes":"no");
+	printf(" - can_move: %s",(cantMove==false)?"yes":"no");
 #endif
-	return (canMove==0);	//canMove in:	0123	0123
-	}						//canMove out:	1000	TFFF
+	return (cantMove==false);	//cantMove in:	0123	0123
+	}						//cantMove out:	1000	TFFF
 
 
 char rotate(int INdir)
@@ -33,26 +33,26 @@ char rotate(int INdir)
 	for (int i=0; (i<5 && cantRotate>0); i++) // [i<5] was [i<3]
 		{
 		addUD=rotatePos[i];
-		if (currentPiece/4!=Itet && i>2)
-			addUD=rotatePos[2];
+		if (currentPiece!=Itet && i>=3)
+			addUD=rotatePos[2]; //disable jumping 2
 		for (int j=0; (j<5 && cantRotate>0); j++)
 			{
 			addLR=rotatePos[i];
-			if (currentPiece/4!=Itet && i>2)
-				addLR=rotatePos[2];
+			if (currentPiece!=Itet && i>=3)
+				addLR=rotatePos[2]; //disable jumping 2
 			cantRotate=0;
 			for (int k=0; k<4; k++)
-				{
-				tempLR = tetLR + tet[currentPiece+addRot][k  ] + addLR;
-				tempUD = tetUD + tet[currentPiece+addRot][k+4] + addUD + 2; //2 hidden rows (might not fix bug)
+				{// tet[tet][xORy][rot][PIECE_PART]
+				tempLR = tetLR + tet[currentPiece][X][addRot][k] + addLR;
+				tempUD = tetUD + tet[currentPiece][Y][addRot][k] + addUD + 2; //2 hidden rows (might not fix bug)
 				if (tempLR>=0 && tempUD>=0 && tempLR<AREA_WIDTH && tempUD<AREA_HEIGHT+2)
-					cantRotate += area[tempLR][tempUD];
+					cantRotate += area[tempLR][tempUD]>EMPTY_AREA; //empty=-1, 'I' tetromino=0, add 1
 				else
 					cantRotate++;
 				}
 			}
 		}
-	if (cantRotate==0)
+	if (cantRotate==false)
 		{
 #ifdef ONE_FLOOR_KICK
 		if (!(addUD>0 && floorKickUsed==true))
@@ -70,47 +70,74 @@ char rotate(int INdir)
 #endif
 		}
 #ifdef DEBUG_STREAM
-	printf(" - can rotate: %s",(cantRotate==0)?"yes":"no");
+	printf(" - can rotate: %s",(cantRotate==false)?"yes":"no");
 #endif
-	return (cantRotate==0);
+	return (cantRotate==false);
 	}
 	
+
+void generate7Pieces(int *INarray)
+	{
+	for (int i=0; i<7; i++)
+		{
+		pieceCreated[i]=0;
+		}
 	
+	for (int i=0; i<7; i++)
+		{
+		char tPiece = rand()%(7-i);
+		
+		for (int j=0; j<7; j++)
+			if (tPiece>=j && pieceCreated[j])
+				tPiece++;
+		
+		INarray[i]=tPiece;
+		pieceCreated[tPiece]=true;
+		}
+		
+	/*char tText[30];
+	sprintf(tText,"%d  %d  %d  %d  %d  %d  %d\n",
+		INarray[0], INarray[1], INarray[2], INarray[3],
+		INarray[4], INarray[5], INarray[6]);
+	EZ_apply_text(screen,tText,font,EZ_new_rect(10,10,0,0),EZ_new_color(100,100,100));
+	SDL_Flip(screen);
+	SDL_Delay(5000);*/
+	}
+
 	
 
-void pieceCreate()
+void pieceCreate(bool INcreateHold)
 	{
 #ifdef DEBUG_STREAM
 	printf("pieceCreate - start");
 #endif
-	int pieceToCreate=prob;
-	int rndm=(rand())%(chnc[prob]);
-	int add=0;
-	for (int j=0; (j<=Ztet)&&(pieceToCreate==prob); j++)
-		{
-		add+=chnc[j];
-		if (add>rndm) pieceToCreate=j*4;
-		}
-	if (pieceToCreate==prob)
-		{
-		ClearScreen();
-		TextOutput(0,24,add,0);
-		TextOutput(0,16,rndm,0);
-		TextOutput(0,00,0,0);
-		Wait(1000);
-		}
-	currentPiece=nextPiece[0];
-	for (int i=1; i<PREVIEW_PIECES; i++)
-		{
-		nextPiece[i-1]=nextPiece[i];
-		}
-	nextPiece[PREVIEW_PIECES-1]=pieceToCreate;
 
-	lockDelay		= 0;
-	//prevRht			= 0;
-	//prevLft			= 0;
-	//prevDrp			= 0;
-	//prevRot			= 0;
+	int tPiece = currentHoldPiece;
+	if (INcreateHold==HOLD) //get the piece from the hold
+		{
+		currentHoldPiece = currentPiece;	//Switch the hold and current pieces
+		if (tPiece!=EMPTY_AREA)
+			currentPiece = tPiece;
+		}
+	if (INcreateHold==COMING || tPiece==EMPTY_AREA) //create new piece
+		{
+		currentPiece=nextPiece[0];
+		for (int i=1; i<7; i++)
+			{
+			nextPiece[i-1] = nextPiece[i];
+			}
+		nextPiece[6]=nextPieceRefresh[0];
+		for (int i=1; i<7; i++)
+			{
+			nextPieceRefresh[i-1] = nextPieceRefresh[i];
+			}
+		nextPieceRefresh[6]=-1;
+		if (nextPieceRefresh[0]<0)
+			generate7Pieces(nextPieceRefresh);
+		pieceCount[currentPiece]++;
+		pieceCount[ALL]++;
+		}
+
 	currentRotate	= 2;
 	prevWaited		= 0;
 	drop			= 0;
@@ -132,12 +159,13 @@ void pieceSetInto(int pieceType)
 #ifdef DEBUG_STREAM
 	printf("pieceSetInto - start");
 #endif
+	usedHoldPiece=false;
 	int tempLR,tempUD;
 	for (int i=0; i<4; i++)
-		{
-		tempLR = tet[currentPiece+currentRotate][i  ]+tetLR;
-		tempUD = tet[currentPiece+currentRotate][i+4]+tetUD+2; //2 upper hidden rows...
-		area[tempLR][tempUD]=(pieceType/4)+1; //tetI=0, and Empty=0, so add 1
+		{// tet[tet][xORy][rot][PIECE_PART]
+		tempLR = tet[currentPiece][X][currentRotate][i]+tetLR;
+		tempUD = tet[currentPiece][Y][currentRotate][i]+tetUD+2; //2 upper hidden rows...
+		area[tempLR][tempUD]=pieceType;
 		}
 #ifdef DEBUG_STREAM
 	printf(" - end\n");
@@ -145,11 +173,6 @@ void pieceSetInto(int pieceType)
 	}
 
 
-int clearFullRows()
-	{
-#ifdef DEBUG_STREAM
-	printf("clearFullRows - start");
-#endif
 /*
 go down...
 if full...
@@ -158,13 +181,18 @@ if full...
 	until fully up
 do not restart at previous full
 */
+int clearFullRows()
+	{
+#ifdef DEBUG_STREAM
+	printf("clearFullRows - start");
+#endif
 	int blocksInRow=0;
 	int numOfFilledLines=0;
 	for (int i=0; i<AREA_HEIGHT+2; i++)		//From the top, check all rows...
 		{
 		blocksInRow=0;
 		for (int j=0; j<AREA_WIDTH; j++)		//Add up number of blocks in row...
-			blocksInRow+=(area[j][i]>0);
+			blocksInRow+=(area[j][i]>EMPTY_AREA);
 		
 		if (blocksInRow>=AREA_WIDTH)				//If the row is full...
 			{
@@ -174,7 +202,7 @@ do not restart at previous full
 					{
 					//printf("clear:%d",area[j][k]);
 					if (k>0)	area[j][k]=area[j][k-1];		//...and overwrite current row with row above it
-					else		area[j][k]=0;					//...if no row above it, empty it.
+					else		area[j][k]=EMPTY_AREA;			//...if no row above it, empty it.
 					}
 				}
 			numOfFilledLines++;
@@ -208,8 +236,7 @@ do not restart at previous full
 			prevQuadClear=true;
 			break;
 		}
-	if (numOfFilledLines<0)
-		disp=numOfFilledLines;
+	lines+=numOfFilledLines;
 	
 #ifdef DEBUG_STREAM
 	printf("full=%d\n",numOfFilledLines);

@@ -11,13 +11,10 @@ void debugInfo(int INint)
 
 void debug(int INmode)
 	{
-	printf("Debug #%d\n",INmode);
-	SDL_Delay(2000);
-	prevQuadClear=false;
+	ClearScreen();
+	SDL_Flip(screen);
 	selectGame(1);
 	gameResetVars();
-	score=rand()%20000+10000;
-	ClearScreen();
 
 	if (INmode==2) //ClearFullRows()
 		{
@@ -25,18 +22,16 @@ void debug(int INmode)
 			{
 			for (int j=0; j<AREA_WIDTH; j++)
 				{
-				area[j][i]=rand()%15;
-				if (area[j][i]>0)
+				area[j][i] = (rand()%15)-EMPTY_AREA;
+				if (area[j][i]>EMPTY_AREA)
 					area[j][i]=area[j][i]%3+1;
 				}
 			}
-		refresh=true;
-		drawBoard(true);
+		drawBoard();
 		SDL_Delay(5000);
 		clearFullRows();
 		SDL_Delay(250);
-		refresh=true;
-		drawBoard(true);
+		drawBoard();
 		SDL_Delay(5000);
 		}
 
@@ -48,25 +43,26 @@ void debug(int INmode)
 			for (angl=0; angl<4; angl++)
 				{
 				ClearScreen();
-				drawTetromino(tets*4,angl,0,0,REAL_TET);
-				SDL_Delay(1000);
+				drawTetromino(tets,(angl+2)%4,0,0,REAL_TET);
+				SDL_Flip(screen);
+				SDL_Delay(600);
 				}
 			}
 		}
 
 	else if (INmode==4) //peiceSetinto()
 		{
-		pieceCreate();
+		pieceCreate(COMING);
 		tetUD=10;
 		
 		drawTetromino(currentPiece,currentRotate,tetLR,tetUD,REAL_TET);
 		SDL_Delay(3000);
 		
-		drawBoard(true);
+		drawBoard();
 		SDL_Delay(3000);
 		
 		pieceSetInto(currentPiece);
-		drawBoard(true);
+		drawBoard();
 		SDL_Delay(3000);
 		
 		debugInfo(0);
@@ -76,17 +72,17 @@ void debug(int INmode)
 		{
 		for (int i=0; i<10; i++)
 			{
-			pieceCreate();
+			pieceCreate(COMING);
 			ClearScreen();
-			printf("c%d n%d n%d n%d\n",currentPiece/4,nextPiece[0]/4,nextPiece[1]/4,nextPiece[2]/4);
+			printf("c%d n%d n%d n%d\n",currentPiece,nextPiece[0],nextPiece[1],nextPiece[2]);
 			SDL_Delay(100);
 			}
 		}
 	
 	else if (INmode==6) //gravity
 		{
-		pieceCreate();
-		while(tetUD<AREA_HEIGHT)
+		pieceCreate(COMING);
+		while(tetUD<AREA_HEIGHT) //off by 2?
 			{
 			ClearScreen();
 			//drawBoard(true);
@@ -102,7 +98,7 @@ void debug(int INmode)
 	
 /*
 // OLD debugStream()
-printf("ds %d   ah %d   su %d   lp %d\n",disp,accesshigh,speedup,INint); //change ds and ah to [%s]
+printf("su %d   lp %d\n",disp,accesshigh,speedup,INint); //change ds and ah to [%s]
 printf("sc %d   gt %d   gs %d   dt %d   lD %d\n",score,gametype,gamespeed,delaytime,lockDelay);
 printf("pW %d   pL %d   pR %d   pD %d   pR %d\n",prevWaited,prevLft,prevRht,prevDrp,prevRot);
 printf("cP %d   cR %d   tL %d   tU %d\n",currentPiece,currentRotate,tetLR,tetUD);
