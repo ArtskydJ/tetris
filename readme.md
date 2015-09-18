@@ -10,7 +10,7 @@
 - Run this command:
 
 ```bash
-gcc -std=c99 -o Tetris.exe Tetris.c -lmingw32 -lSDLmain -lSDL -lSDL_ttf -mwindows
+gcc -std=c99 -o bin/Tetris.exe Tetris.c -lmingw32 -lSDLmain -lSDL -lSDL_ttf -mwindows
 ```
 
 ## Known issues
